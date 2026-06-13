@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "domain": "tofu.proxmox",
+  "title": "Proxmox-family OpenTofu Provider",
+  "description": "Generic-over-the-API provider for PVE/PBS/PMG/PDM (proxmox_object + proxmox_task). 100% coverage by construction.",
+  "phases": [
+    {
+      "number": 1,
+      "title": "Transport (all 4 products)",
+      "exit_criteria": "internal/proxmox builds; product spec, ticket+CSRF and API-token auth, and UPID TaskWait unit-tested.",
+      "items": [
+        { "number": "1.1", "feature": "Product spec table", "description": "Per-product port/cookie/token scheme (pve/pbs/pmg/pdm)", "done": true },
+        { "number": "1.2", "feature": "REST client", "description": "ticket+CSRF + API-token auth, Get/Post/Put/Delete, APIError/NotFound, writeMu", "done": true },
+        { "number": "1.3", "feature": "UPID task polling", "description": "ParseUPID, TaskStatus, TaskWait against /nodes/{node}/tasks/{upid}/status", "done": true }
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Resources (PVE-validated)",
+      "exit_criteria": "proxmox_object imports an existing CT /config to 0-diff; proxmox_task creates+starts+destroys a CT.",
+      "items": [
+        { "number": "2.1", "feature": "proxmox_object", "description": "declarative subset-managed resource + data source", "done": true },
+        { "number": "2.2", "feature": "proxmox_task", "description": "imperative async resource (UPID poll) + data source", "done": true },
+        { "number": "2.3", "feature": "provider config", "description": "per-product host/port/auth + Configure", "done": true }
+      ]
+    },
+    {
+      "number": 3,
+      "title": "PBS/PMG/PDM validation",
+      "exit_criteria": "read-only object/task smoke against each product confirms auth+port routing.",
+      "items": [
+        { "number": "3.1", "feature": "PBS smoke", "description": "data-source read on 8007 with PBSAPIToken", "done": false },
+        { "number": "3.2", "feature": "PMG smoke", "description": "ticket-only auth on 8006", "done": false },
+        { "number": "3.3", "feature": "PDM smoke", "description": "aggregator path routing", "done": false }
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Monorepo migration (separate effort)",
+      "exit_criteria": "tofu/opentofu/hv/pve migrated off bpg/proxmox to this provider.",
+      "items": [
+        { "number": "4.1", "feature": "Migrate hv/pve", "description": "Replace bpg resources with proxmox_object/proxmox_task; preserve NetBox SoT + ansible handoff", "done": false }
+      ]
+    }
+  ]
+}
