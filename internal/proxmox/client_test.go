@@ -19,7 +19,7 @@ func TestSpecForAndAuthorization(t *testing.T) {
 		{PVE, true, 8006, "PVEAuthCookie", true, "PVEAPIToken=u@pam!t=SECRET"},
 		{PBS, true, 8007, "PBSAuthCookie", true, "PBSAPIToken=u@pam!t:SECRET"},
 		{PMG, true, 8006, "PMGAuthCookie", false, ""},
-		{PDM, true, 8006, "PVEAuthCookie", true, "PVEAPIToken=u@pam!t=SECRET"},
+		{PDM, true, 8443, "__Host-PDMAuthCookie", true, "PDMAPIToken=u@pam!t:SECRET"},
 		{Product("nope"), false, 0, "", false, ""},
 	}
 	for _, tc := range cases {

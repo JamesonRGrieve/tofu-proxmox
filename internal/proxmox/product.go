@@ -44,8 +44,12 @@ func specFor(p Product) (productSpec, bool) {
 		// PMG is ticket-only — no API tokens.
 		return productSpec{defaultPort: 8006, cookieName: "PMGAuthCookie"}, true
 	case PDM:
-		// PDM proxies PVE clusters; it reuses the PVE cookie name and token scheme.
-		return productSpec{defaultPort: 8006, cookieName: "PVEAuthCookie", tokenPrefix: "PVEAPIToken=", tokenSep: "="}, true
+		// PDM (Datacenter Manager) — verified against pdm-lab 1.1.1: it does NOT
+		// reuse the PVE scheme. Default API port 8443, session cookie
+		// __Host-PDMAuthCookie, and an API-token scheme using the PDM prefix with
+		// a ':' secret separator (PBS-style, not PVE's '='):
+		// PDMAPIToken=user@realm!id:secret.
+		return productSpec{defaultPort: 8443, cookieName: "__Host-PDMAuthCookie", tokenPrefix: "PDMAPIToken=", tokenSep: ":"}, true
 	default:
 		return productSpec{}, false
 	}

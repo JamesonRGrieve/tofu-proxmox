@@ -28,7 +28,7 @@ This file holds only repo-specific facts.
 | pve | 8006 | PVEAuthCookie | `PVEAPIToken=u@r!id=secret` | self-signed cert (insecure=true) |
 | pbs | 8007 | PBSAuthCookie | `PBSAPIToken=u@r!id:secret` (colon) | |
 | pmg | 8006 | PMGAuthCookie | **none — ticket only** | reject token auth at Configure |
-| pdm | 8006 | PVEAuthCookie | `PVEAPIToken=...` | aggregator/proxy; node in paths is a cluster member |
+| pdm | 8443 | `__Host-PDMAuthCookie` | `PDMAPIToken=u@r!id:secret` (colon) | verified vs pdm-lab 1.1.1 — NOT the PVE scheme; aggregator/proxy. Token auth works; *ticket* login is cookie-only (PDM returns no body `ticket`), so `client.login()` would need Set-Cookie parsing for password auth — token auth is the supported path. |
 
 ## Repo-specific wrinkles
 
