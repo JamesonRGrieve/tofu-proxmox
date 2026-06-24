@@ -43,6 +43,11 @@ type providerModel struct {
 	APITokenSecret types.String `tfsdk:"api_token_secret"`
 	Insecure       types.Bool   `tfsdk:"insecure"`
 	TimeoutSeconds types.Int64  `tfsdk:"timeout_seconds"`
+	SSHHost        types.String `tfsdk:"ssh_host"`
+	SSHPort        types.Int64  `tfsdk:"ssh_port"`
+	SSHUser        types.String `tfsdk:"ssh_user"`
+	SSHKeyFile     types.String `tfsdk:"ssh_key_file"`
+	SSHKeyPEM      types.String `tfsdk:"ssh_key_pem"`
 }
 
 func (p *proxmoxProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -97,6 +102,29 @@ func (p *proxmoxProvider) Schema(_ context.Context, _ provider.SchemaRequest, re
 				Optional:            true,
 				MarkdownDescription: "Per-request HTTP timeout in seconds (default 30).",
 			},
+			"ssh_host": schema.StringAttribute{
+				Optional: true,
+				MarkdownDescription: "SSH address (host or host:port, no scheme) of the node, for the `proxmox_host_config` " +
+					"resource's Debian-OS settings (the config with no `/api2/json` endpoint). Distinct from `host` so a " +
+					"relay/jump endpoint can differ from the API endpoint. Unset → `proxmox_host_config` is unavailable.",
+			},
+			"ssh_port": schema.Int64Attribute{
+				Optional:            true,
+				MarkdownDescription: "SSH port (default: `ssh_host`'s `:port`, else 22).",
+			},
+			"ssh_user": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "SSH login user for `proxmox_host_config` (default `root`).",
+			},
+			"ssh_key_file": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Path to an SSH identity file (`ssh -i`). When unset and `ssh_key_pem` is empty, ssh_config/agent is used. Key/cert auth only — never a password.",
+			},
+			"ssh_key_pem": schema.StringAttribute{
+				Optional:            true,
+				Sensitive:           true,
+				MarkdownDescription: "SSH private-key material (e.g. an OpenBao-signed key from `TF_VAR_*`). Written to a temp 0600 file per call and removed after; never persisted.",
+			},
 		},
 	}
 }
@@ -136,6 +164,11 @@ func (p *proxmoxProvider) Configure(ctx context.Context, req provider.ConfigureR
 		TokenSecret: cfg.APITokenSecret.ValueString(),
 		Insecure:    insecure,
 		Timeout:     time.Duration(cfg.TimeoutSeconds.ValueInt64()) * time.Second,
+		SSHHost:     cfg.SSHHost.ValueString(),
+		SSHPort:     int(cfg.SSHPort.ValueInt64()),
+		SSHUser:     cfg.SSHUser.ValueString(),
+		SSHKeyFile:  cfg.SSHKeyFile.ValueString(),
+		SSHKeyPEM:   cfg.SSHKeyPEM.ValueString(),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Proxmox provider configuration", err.Error())
@@ -146,7 +179,7 @@ func (p *proxmoxProvider) Configure(ctx context.Context, req provider.ConfigureR
 }
 
 func (p *proxmoxProvider) Resources(_ context.Context) []func() resource.Resource {
-	return []func() resource.Resource{NewObjectResource, NewTaskResource}
+	return []func() resource.Resource{NewObjectResource, NewTaskResource, NewHostConfigResource}
 }
 
 func (p *proxmoxProvider) DataSources(_ context.Context) []func() datasource.DataSource {

@@ -40,6 +40,11 @@ type Client struct {
 	// and rejects concurrent same-guest ops; serializing all writes from one
 	// client (one host) is cheap insurance under parallel applies.
 	writeMu sync.Mutex
+
+	// SSH is the node-OS transport for proxmox_host_config (the Debian settings
+	// with no /api2/json endpoint). nil when the provider was configured without
+	// an ssh_host — the API resources (proxmox_object/proxmox_task) never use it.
+	SSH *SSHClient
 }
 
 // Config configures a Client. Exactly one auth mode must be supplied: API token
@@ -54,6 +59,17 @@ type Config struct {
 	TokenSecret string
 	Insecure    bool          // skip TLS verification (Proxmox ships a self-signed cert)
 	Timeout     time.Duration // per request (default 30s)
+
+	// SSH transport for proxmox_host_config (key/cert auth only, never sshpass).
+	// When SSHHost is empty no SSHClient is built and the host-config resource
+	// errors if used. SSHHost defaults to the API Host (stripped of any API port)
+	// when left unset by the caller but provided here as a distinct address so a
+	// relay/jump endpoint can differ from the API endpoint.
+	SSHHost    string
+	SSHPort    int
+	SSHUser    string
+	SSHKeyFile string
+	SSHKeyPEM  string
 }
 
 // NewClient builds a Client. It validates the product and auth mode but does not
@@ -84,12 +100,22 @@ func NewClient(cfg Config) (*Client, error) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: cfg.Insecure}, //nolint:gosec // self-signed mgmt cert
 	}
-	return &Client{
+	c := &Client{
 		base: fmt.Sprintf("https://%s/api2/json", host),
 		spec: spec,
 		cfg:  cfg,
 		http: &http.Client{Timeout: cfg.Timeout, Transport: tr},
-	}, nil
+	}
+	if cfg.SSHHost != "" {
+		c.SSH = NewSSHClient(SSHConfig{
+			Host:    cfg.SSHHost,
+			Port:    cfg.SSHPort,
+			User:    cfg.SSHUser,
+			KeyFile: cfg.SSHKeyFile,
+			KeyPEM:  cfg.SSHKeyPEM,
+		})
+	}
+	return c, nil
 }
 
 // APIError is returned when Proxmox responds with a non-2xx status.

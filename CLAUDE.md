@@ -47,8 +47,18 @@ This file holds only repo-specific facts.
   Unset config keys via `delete_body` (`{"delete":"hookscript,mp0"}`) on update. The subset model
   never unsets keys you stop declaring — by design. Fix spurious diffs in subset logic, never by
   widening stored state.
-- **Host-side boundary:** hookscript files, bind-mount source dirs, NFS mounts, NVIDIA drivers are
-  **not** API-settable — they live in Ansible/host bootstrap. The provider manages only guest config.
+- **Two transports (decision 2026-06-24):** like `tofu-opnsense` (REST `opnsense_object` +
+  SSH/PHP `opnsense_system_config`), this provider carries an **API transport** (`proxmox_object`,
+  the PVE REST API) **and** an **SSH transport** (`proxmox_host_config`, `internal/proxmox/ssh.go`,
+  key/cert auth — never `sshpass`). The earlier "API-only / host-side lives in Ansible" charter is
+  retired for the **node's Debian-OS config**: hostname, timezone, DNS, NTP/timesyncd, remote
+  syslog, logrotate, `sshd_config.d` drop-ins (port/password-auth/AllowUsers/hardening), and
+  `snmpd.conf` (v2c + v3) are managed natively by `proxmox_host_config` over SSH — replacing the 15
+  `hv/_common` `scottwinkler/shell` modules (the 60 duplicated sshpass scripts).
+- **Genuine host-side boundary (still out of scope):** hookscript files, bind-mount source dirs,
+  NFS mounts, NVIDIA drivers — these are guest/storage plumbing with neither a PVE API nor a
+  declarable node-OS config surface; they remain in Ansible/host bootstrap. `proxmox_host_config`
+  covers node-OS *settings*, not guest/storage plumbing.
 - **ai-lab CT fields** (`hookscript`, `mpN`, `netN` bridge+tag, `unprivileged`, raw `lxc.*`) are all
   settable via `PUT /nodes/{node}/lxc/{vmid}/config`. VMID = `vlan*1000+octet` is config-layer math.
 
